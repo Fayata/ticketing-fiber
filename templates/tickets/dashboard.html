@@ -1,9 +1,9 @@
 {{define "title"}}Dashboard - Portal Ticketing{{end}}
 {{define "nav_dashboard"}}active{{end}}
 {{define "page_title"}}Dashboard{{end}}
-{{define "page_subtitle"}}Selamat datang kembali, {{if .user}}{{getFullName .user}}{{else}}User{{end}}!{{end}}
+{{define "page_subtitle"}}Selamat datang kembali, {{getFullName .user}}!{{end}}
+
 {{define "content"}}
-<!-- Welcome Banner -->
 <div class="welcome-banner">
     <div class="banner-content">
         <div class="banner-text">
@@ -24,7 +24,6 @@
     </div>
 </div>
 
-<!-- Stats Grid -->
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-content">
@@ -88,9 +87,7 @@
     </div>
 </div>
 
-<!-- Main Grid -->
 <div class="main-grid">
-    <!-- Tickets List -->
     <div class="card">
         <div class="card-header">
             <h2>Tiket Saya</h2>
@@ -105,7 +102,7 @@
             <div class="ticket-list">
                 {{if .recent_tickets}}
                     {{range .recent_tickets}}
-                    <div class="ticket-item" data-ticket-id="{{.ID}}">
+                    <div class="ticket-item" onclick="window.location.href='/tiket/{{.ID}}'">
                         <div class="ticket-header">
                             <div>
                                 <div class="ticket-id-status">
@@ -136,7 +133,7 @@
                         </div>
                         <div class="ticket-footer">
                             <span>Dibuat: {{date .CreatedAt}}</span>
-                            <span>Update terakhir: {{date .UpdatedAt}}</span>
+                            <span>Update terakhir: {{timeSince .UpdatedAt}} lalu</span>
                         </div>
                     </div>
                     {{end}}
@@ -153,7 +150,6 @@
             </div>
         </div>
 
-        <!-- Quick Actions -->
         <div class="quick-actions">
             <a href="/kirim-tiket" class="quick-action-btn">
                 <div class="quick-action-icon red">
@@ -192,9 +188,7 @@
         </div>
     </div>
 
-    <!-- Sidebar Section -->
     <div class="sidebar-section">
-        <!-- Announcements -->
         <div class="card">
             <div class="card-header">
                 <h2>Pengumuman</h2>
@@ -212,7 +206,7 @@
                             <div class="announcement-text">
                                 <h4>{{.title}}</h4>
                                 <p>{{.description}}</p>
-                                <span>{{date .created_at}} lalu</span>
+                                <span>{{timeSince .created_at}} lalu</span>
                             </div>
                         </div>
                     </div>
@@ -236,7 +230,6 @@
             </div>
         </div>
 
-        <!-- Knowledge Base -->
         <div class="card" style="margin-top: 1.5rem;">
             <div class="card-header">
                 <h2>Artikel Populer</h2>

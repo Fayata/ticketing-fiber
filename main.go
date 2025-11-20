@@ -44,7 +44,7 @@ func main() {
 	config.Store = session.New(session.Config{
 		Expiration:     cfg.SessionExpiry,
 		CookieHTTPOnly: true,
-		CookieSecure:   false, // Set true in production with HTTPS
+		CookieSecure:   false, // Set true in production
 		CookieSameSite: "Lax",
 	})
 
@@ -53,7 +53,10 @@ func main() {
 	engine.Reload(cfg.Debug)
 	engine.Debug(cfg.Debug)
 
-	// Add custom template functions
+	// --- TEMPLATE FUNCTIONS (HELPER) ---
+	// Fungsi-fungsi ini meniru filter template Django
+
+	// 1. Slice string (untuk avatar)
 	engine.AddFunc("slice", func(s string, start, end int) string {
 		if start < 0 || end > len(s) || start > end {
 			return s
@@ -61,17 +64,12 @@ func main() {
 		return s[start:end]
 	})
 
+	// 2. Uppercase
 	engine.AddFunc("upper", func(s string) string {
-		return s
+		return strings.ToUpper(s)
 	})
 
-	engine.AddFunc("default", func(value, defaultValue interface{}) interface{} {
-		if value == nil || value == "" {
-			return defaultValue
-		}
-		return value
-	})
-
+	// 3. Date formatting standar
 	engine.AddFunc("date", func(t interface{}) string {
 		if t == nil {
 			return ""
@@ -88,6 +86,7 @@ func main() {
 		return ""
 	})
 
+	// 4. Date formatting pendek
 	engine.AddFunc("dateShort", func(t interface{}) string {
 		if t == nil {
 			return ""
@@ -104,11 +103,37 @@ func main() {
 		return ""
 	})
 
+	// 5. Time Since (Meniru filter |timesince Django) - SOLUSI ERROR ANDA
+	engine.AddFunc("timeSince", func(t time.Time) string {
+		now := time.Now()
+		diff := now.Sub(t)
+
+		days := int(diff.Hours() / 24)
+		hours := int(diff.Hours())
+		minutes := int(diff.Minutes())
+
+		if days > 0 {
+			return fmt.Sprintf("%d hari", days)
+		}
+		if hours > 0 {
+			return fmt.Sprintf("%d jam", hours)
+		}
+		if minutes > 0 {
+			return fmt.Sprintf("%d menit", minutes)
+		}
+		return "Baru saja"
+	})
+
+	// 6. Equality check
 	engine.AddFunc("eq", func(a, b interface{}) bool {
 		return a == b
 	})
 
+	// 7. Length check
 	engine.AddFunc("len", func(arr interface{}) int {
+		if arr == nil {
+			return 0
+		}
 		switch v := arr.(type) {
 		case []interface{}:
 			return len(v)
@@ -118,26 +143,51 @@ func main() {
 			return len(v)
 		case []models.Department:
 			return len(v)
+		case string:
+			return len(v)
 		}
 		return 0
 	})
 
-	engine.AddFunc("linebreaks", func(s string) string {
-		// Convert newlines to <br> tags
+	// 8. Linebreaks (dengan perbaikan tipe data interface{})
+	engine.AddFunc("linebreaks", func(val interface{}) string {
+		var s string
+		if val == nil {
+			return ""
+		}
+		s = fmt.Sprint(val)
 		return strings.ReplaceAll(strings.ReplaceAll(s, "\r\n", "<br>"), "\n", "<br>")
 	})
 
+	// 9. Get Full Name (Menangani pointer dan value user)
 	engine.AddFunc("getFullName", func(user interface{}) string {
 		if user == nil {
-			return ""
+			return "User"
 		}
+		// Handle jika user adalah pointer (*models.User)
 		if u, ok := user.(*models.User); ok {
 			if u.FirstName != "" || u.LastName != "" {
 				return strings.TrimSpace(u.FirstName + " " + u.LastName)
 			}
 			return u.Username
 		}
-		return ""
+		// Handle jika user adalah value (models.User)
+		if u, ok := user.(models.User); ok {
+			if u.FirstName != "" || u.LastName != "" {
+				return strings.TrimSpace(u.FirstName + " " + u.LastName)
+			}
+			return u.Username
+		}
+		return "User"
+	})
+
+	// 10. Truncate words (untuk deskripsi pengumuman)
+	engine.AddFunc("truncatewords", func(s string, limit int) string {
+		words := strings.Fields(s)
+		if len(words) <= limit {
+			return s
+		}
+		return strings.Join(words[:limit], " ") + "..."
 	})
 
 	// Initialize Fiber app
@@ -156,24 +206,22 @@ func main() {
 	// Static files
 	app.Static("/static", "./static")
 
-	// Set user locals for all routes
+	// Set user locals
 	app.Use(middleware.SetUserLocals)
 
-	// Initialize services
+	// Services & Handlers
 	emailService := utils.NewEmailService(cfg)
-
-	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(cfg)
 	dashboardHandler := handlers.NewDashboardHandler(cfg)
 	ticketHandler := handlers.NewTicketHandler(cfg, emailService)
 	settingsHandler := handlers.NewSettingsHandler(cfg)
 
-	// Routes - Public
+	// Routes
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Redirect("/login")
 	})
 
-	// Auth routes
+	// Auth
 	app.Get("/login", middleware.GuestOnly, authHandler.ShowLogin)
 	app.Post("/login", authHandler.Login)
 	app.Get("/register", middleware.GuestOnly, authHandler.ShowRegister)
@@ -181,13 +229,11 @@ func main() {
 	app.Get("/logout", authHandler.Logout)
 	app.Post("/logout", authHandler.Logout)
 
-	// Protected routes
+	// Protected Routes
 	protected := app.Group("/", middleware.AuthRequired, middleware.PortalUserRequired)
 
-	// Dashboard
 	protected.Get("/dashboard", dashboardHandler.ShowDashboard)
 
-	// Tickets
 	protected.Get("/tiket", ticketHandler.ShowMyTickets)
 	protected.Get("/tiket/:id", ticketHandler.ShowTicketDetail)
 	protected.Post("/tiket/:id", ticketHandler.AddReply)
@@ -195,15 +241,14 @@ func main() {
 	protected.Post("/kirim-tiket", ticketHandler.CreateTicket)
 	protected.Get("/tiket/sukses/:id", ticketHandler.ShowTicketSuccess)
 
-	// Settings
 	protected.Get("/settings", settingsHandler.ShowSettings)
 	protected.Post("/settings/profile", settingsHandler.UpdateProfile)
 	protected.Post("/settings/password", settingsHandler.ChangePassword)
 
-	// Seed default data (run once)
+	// Seed Data
 	seedDefaultData()
 
-	// Start server
+	// Start Server
 	log.Printf("🚀 Server starting on port %s", cfg.Port)
 	log.Printf("🌐 Visit: http://localhost:%s", cfg.Port)
 	log.Fatal(app.Listen(":" + cfg.Port))
@@ -214,51 +259,18 @@ func customErrorHandler(c *fiber.Ctx, err error) error {
 	if e, ok := err.(*fiber.Error); ok {
 		code = e.Code
 	}
-
-	// Log error detail
 	log.Printf("Error: %v", err)
-	log.Printf("Error Type: %T", err)
-	if code == fiber.StatusInternalServerError {
-		log.Printf("Stack trace: %+v", err)
-	}
-
-	if code == fiber.StatusNotFound {
-		return c.Status(code).SendString("Page not found")
-	}
-
-	// Return detailed error in debug mode
+	// Return detailed error for debugging
 	return c.Status(code).SendString(fmt.Sprintf("Internal Server Error: %v", err))
 }
 
 func seedDefaultData() {
-	// Create Portal Users group if not exists
 	var portalGroup models.Group
 	config.DB.FirstOrCreate(&portalGroup, models.Group{Name: "Portal Users"})
 
-	// Create default departments if not exist
 	departments := []string{"Technical Support", "Customer Service", "Billing", "General"}
 	for _, deptName := range departments {
 		var dept models.Department
 		config.DB.FirstOrCreate(&dept, models.Department{Name: deptName})
 	}
-
-	// Create admin user if not exists (optional)
-	var adminUser models.User
-	if err := config.DB.Where("username = ?", "admin").First(&adminUser).Error; err != nil {
-		hashedPassword, _ := utils.HashPassword("admin123")
-		adminUser = models.User{
-			Username:  "admin",
-			Email:     "admin@ticketing.local",
-			Password:  hashedPassword,
-			FirstName: "Admin",
-			LastName:  "System",
-			IsStaff:   true,
-			IsActive:  true,
-		}
-		config.DB.Create(&adminUser)
-		config.DB.Model(&adminUser).Association("Groups").Append(&portalGroup)
-		log.Println("✅ Admin user created - username: admin, password: admin123")
-	}
-
-	log.Println("✅ Default data seeded")
 }
