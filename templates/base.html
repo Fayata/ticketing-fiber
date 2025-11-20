@@ -28,7 +28,6 @@
                     </svg>
                 </button>
             </div>
-
             <!-- Navigation -->
             <nav class="sidebar-nav">
                 <a href="/dashboard" class="nav-item {{block "nav_dashboard" .}}{{end}}">
@@ -69,7 +68,6 @@
                     <span>Knowledge Base</span>
                 </a>
             </nav>
-
             <!-- User Profile -->
             <div class="sidebar-user">
                 <div class="user-info">
@@ -77,7 +75,7 @@
                         {{if .user}}{{slice .user.Username 0 2 | upper}}{{end}}
                     </div>
                     <div class="user-details">
-                        <div class="user-name">{{if .user}}{{getFullName .user}}{{else}}User{{end}}</div>
+                        <div class="user-name">{{if .user}}{{if .user.GetFullName}}{{.user.GetFullName}}{{else}}{{.user.Username}}{{end}}{{end}}</div>
                         <div class="user-email">{{if .user}}{{.user.Email}}{{end}}</div>
                     </div>
                 </div>
