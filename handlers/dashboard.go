@@ -2,6 +2,8 @@
 package handlers
 
 import (
+	"fmt"
+
 	"ticketing-fiber/config"
 	"ticketing-fiber/models"
 
@@ -21,8 +23,7 @@ func (h *DashboardHandler) ShowDashboard(c *fiber.Ctx) error {
 
 	var waitingCount, inProgressCount, closedCount, totalCount int64
 
-	// Menggunakan konstanta status dari models/ticket.go
-	// Pastikan string di database SAMA PERSIS dengan yang di query ini
+	// Menggunakan Status dari model (WAITING, IN_PROGRESS, CLOSED)
 	config.DB.Model(&models.Ticket{}).
 		Where("created_by_id = ? AND status = ?", user.ID, models.StatusWaiting).
 		Count(&waitingCount)
@@ -47,17 +48,19 @@ func (h *DashboardHandler) ShowDashboard(c *fiber.Ctx) error {
 		Limit(5).
 		Find(&recentTickets)
 
-	return c.Render("tickets/dashboard", fiber.Map{
+	return c.Render("tickets/dashboard", addBaseData(c, fiber.Map{
 		"title":               "Dashboard - Portal Ticketing",
-		"user":                user,
+		"page_title":          "Dashboard",
+		"page_subtitle":       fmt.Sprintf("Selamat datang kembali, %s!", user.GetFullName()),
+		"nav_active":          "dashboard",
+		"template_name":       "tickets/dashboard",
 		"waiting_tickets":     waitingCount,
 		"in_progress_tickets": inProgressCount,
 		"closed_tickets":      closedCount,
 		"total_tickets":       totalCount,
 		"recent_tickets":      recentTickets,
-		// Placeholder empty slices untuk menyamai view Django yang mengirim list kosong
-		"announcements":    []interface{}{},
-		"popular_articles": []interface{}{},
-		"unread_count":     0,
-	})
+		"announcements":       []interface{}{},
+		"popular_articles":    []interface{}{},
+		"unread_count":        0,
+	}))
 }

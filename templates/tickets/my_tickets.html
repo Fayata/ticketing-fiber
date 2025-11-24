@@ -1,8 +1,4 @@
-{{define "title"}}Tiket Saya - Portal Ticketing{{end}}
-{{define "nav_tickets"}}active{{end}}
-{{define "page_title"}}Tiket Saya{{end}}
-{{define "page_subtitle"}}Kelola semua tiket support Anda{{end}}
-{{define "extra_css"}}
+{{define "tickets/my_tickets_content"}}
 <style>
     .filters-bar {
         background: white;
@@ -93,8 +89,6 @@
         }
     }
 </style>
-{{end}}
-{{define "content"}}
 <!-- Filters -->
 <div class="filters-bar">
     <form method="GET" class="filters-form">
@@ -119,9 +113,9 @@
             <label>Prioritas</label>
             <select name="priority" class="filter-select">
                 <option value="all" {{if eq .priority_filter "all"}}selected{{end}}>Semua Prioritas</option>
-                <option value="LOW" {{if eq .priority_filter "low"}}selected{{end}}>Low</option>
-                <option value="MEDIUM" {{if eq .priority_filter "medium"}}selected{{end}}>Medium</option>
-                <option value="HIGH" {{if eq .priority_filter "high"}}selected{{end}}>High</option>
+                <option value="LOW" {{if eq .priority_filter "LOW"}}selected{{end}}>Low</option>
+                <option value="MEDIUM" {{if eq .priority_filter "MEDIUM"}}selected{{end}}>Medium</option>
+                <option value="HIGH" {{if eq .priority_filter "HIGH"}}selected{{end}}>High</option>
             </select>
         </div>
         

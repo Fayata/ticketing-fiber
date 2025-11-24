@@ -1,9 +1,4 @@
-{{define "title"}}Dashboard - Portal Ticketing{{end}}
-{{define "nav_dashboard"}}active{{end}}
-{{define "page_title"}}Dashboard{{end}}
-{{define "page_subtitle"}}Selamat datang kembali, {{getFullName .user}}!{{end}}
-
-{{define "content"}}
+{{define "tickets/dashboard_content"}}
 <div class="welcome-banner">
     <div class="banner-content">
         <div class="banner-text">
@@ -107,7 +102,7 @@
                             <div>
                                 <div class="ticket-id-status">
                                     <span class="ticket-id">#TKT-{{.ID}}</span>
-                                    <span class="status-badge {{if eq .Status "WAITING"}}open{{else if eq .Status "IN_PROGRESS"}}in-progress{{else}}closed{{end}}">
+                                    <span class="status-badge {{getStatusClass .Status}}">
                                         {{.GetStatusDisplay}}
                                     </span>
                                 </div>
@@ -119,7 +114,7 @@
                                         </svg>
                                         {{if .Department}}{{.Department.Name}}{{else}}Umum{{end}}
                                     </span>
-                                    <span class="ticket-meta-item priority-{{if eq .Priority "HIGH"}}high{{else if eq .Priority "MEDIUM"}}medium{{else}}low{{end}}">
+                                    <span class="ticket-meta-item priority-{{getPriorityClass .Priority}}">
                                         {{.GetPriorityDisplay}} Priority
                                     </span>
                                     <span class="ticket-meta-item">

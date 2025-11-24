@@ -1,12 +1,8 @@
-{{define "title"}}Tiket #{{.ticket.ID}} - {{.ticket.Title}}{{end}}
-{{define "nav_tickets"}}active{{end}}
-{{define "page_title"}}Detail Tiket #{{.ticket.ID}}{{end}}
-{{define "page_subtitle"}}{{.ticket.Title}}{{end}}
-{{define "extra_css"}}
+{{define "tickets/ticket_detail_content"}}
 <link rel="stylesheet" href="/static/ticket_detail.css">
-{{end}}
-{{define "content"}}
 <div class="ticket-detail-container">
+    {{if .ticket}}
+    {{$ticket := .ticket}}
     <!-- Ticket Header Card -->
     <div class="card ticket-header-card">
         <div class="card-body">
@@ -16,14 +12,14 @@
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>
                     </svg>
-                    <span>Tiket #{{.ticket.ID}}</span>
+                    <span>Tiket #{{$ticket.ID}}</span>
                 </div>
-                <span class="status-badge {{if eq .ticket.Status "WAITING"}}open{{else if eq .ticket.Status "IN_PROGRESS"}}in-progress{{else}}closed{{end}}">
-                    {{.ticket.GetStatusDisplay}}
+                <span class="status-badge {{if eq $ticket.Status "WAITING"}}open{{else if eq $ticket.Status "IN_PROGRESS"}}in-progress{{else}}closed{{end}}">
+                    {{$ticket.GetStatusDisplay}}
                 </span>
             </div>
             
-            <h1 class="ticket-title-large">{{.ticket.Title}}</h1>
+            <h1 class="ticket-title-large">{{$ticket.Title}}</h1>
             
             <div class="ticket-meta-grid">
                 <div class="meta-item">
@@ -33,7 +29,7 @@
                     </svg>
                     <div>
                         <span class="meta-label">Dibuat oleh</span>
-                        <span class="meta-value">{{if .ticket.CreatedBy}}{{getFullName .ticket.CreatedBy}}{{else}}Unknown{{end}}</span>
+                        <span class="meta-value">{{if $ticket.CreatedBy}}{{getFullName $ticket.CreatedBy}}{{else}}Unknown{{end}}</span>
                     </div>
                 </div>
                 
@@ -46,7 +42,7 @@
                     </svg>
                     <div>
                         <span class="meta-label">Departemen</span>
-                        <span class="meta-value">{{if .ticket.Department}}{{.ticket.Department.Name}}{{else}}Tidak Ditentukan{{end}}</span>
+                        <span class="meta-value">{{if $ticket.Department}}{{$ticket.Department.Name}}{{else}}Tidak Ditentukan{{end}}</span>
                     </div>
                 </div>
                 
@@ -58,8 +54,8 @@
                     </svg>
                     <div>
                         <span class="meta-label">Prioritas</span>
-                        <span class="meta-value priority-{{if eq .ticket.Priority "HIGH"}}high{{else if eq .ticket.Priority "MEDIUM"}}medium{{else}}low{{end}}">
-                            {{.ticket.GetPriorityDisplay}}
+                        <span class="meta-value priority-{{if eq $ticket.Priority "HIGH"}}high{{else if eq $ticket.Priority "MEDIUM"}}medium{{else}}low{{end}}">
+                            {{$ticket.GetPriorityDisplay}}
                         </span>
                     </div>
                 </div>
@@ -71,7 +67,7 @@
                     </svg>
                     <div>
                         <span class="meta-label">Dibuat</span>
-                        <span class="meta-value">{{date .ticket.CreatedAt}}</span>
+                        <span class="meta-value">{{date $ticket.CreatedAt}}</span>
                     </div>
                 </div>
             </div>
@@ -91,16 +87,16 @@
                         <div class="message-header">
                             <div class="message-author">
                                 <div class="author-avatar">
-                                    {{if .ticket.CreatedBy}}{{slice .ticket.CreatedBy.Username 0 2 | upper}}{{else}}??{{end}}
+                                    {{if $ticket.CreatedBy}}{{slice $ticket.CreatedBy.Username 0 2 | upper}}{{else}}??{{end}}
                                 </div>
                                 <div>
-                                    <div class="author-name">{{if .ticket.CreatedBy}}{{getFullName .ticket.CreatedBy}}{{else}}Unknown{{end}}</div>
-                                    <div class="message-time">{{date .ticket.CreatedAt}}</div>
+                                    <div class="author-name">{{if $ticket.CreatedBy}}{{getFullName $ticket.CreatedBy}}{{else}}Unknown{{end}}</div>
+                                    <div class="message-time">{{date $ticket.CreatedAt}}</div>
                                 </div>
                             </div>
                         </div>
                         <div class="message-body">
-                            {{linebreaks .ticket.Description}}
+                            {{linebreaks $ticket.Description}}
                         </div>
                     </div>
                 </div>
@@ -213,27 +209,27 @@
                     <div class="info-list">
                         <div class="info-item">
                             <span class="info-label">ID Tiket</span>
-                            <span class="info-value">#{{.ticket.ID}}</span>
+                            <span class="info-value">#{{$ticket.ID}}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Status</span>
-                            <span class="status-badge {{if eq .ticket.Status "WAITING"}}open{{else if eq .ticket.Status "IN_PROGRESS"}}in-progress{{else}}closed{{end}}">
-                                {{.ticket.GetStatusDisplay}}
+                            <span class="status-badge {{if eq $ticket.Status "WAITING"}}open{{else if eq $ticket.Status "IN_PROGRESS"}}in-progress{{else}}closed{{end}}">
+                                {{$ticket.GetStatusDisplay}}
                             </span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Prioritas</span>
-                            <span class="info-value priority-{{if eq .ticket.Priority "HIGH"}}high{{else if eq .ticket.Priority "MEDIUM"}}medium{{else}}low{{end}}">
-                                {{.ticket.GetPriorityDisplay}}
+                            <span class="info-value priority-{{if eq $ticket.Priority "HIGH"}}high{{else if eq $ticket.Priority "MEDIUM"}}medium{{else}}low{{end}}">
+                                {{$ticket.GetPriorityDisplay}}
                             </span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Dibuat</span>
-                            <span class="info-value">{{dateShort .ticket.CreatedAt}}</span>
+                            <span class="info-value">{{dateShort $ticket.CreatedAt}}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Terakhir Update</span>
-                            <span class="info-value">{{dateShort .ticket.UpdatedAt}}</span>
+                            <span class="info-value">{{dateShort $ticket.UpdatedAt}}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Total Balasan</span>
@@ -244,6 +240,20 @@
             </div>
         </div>
     </div>
+    {{else}}
+    <div class="card">
+        <div class="card-body">
+            <div class="info-message">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <p>Data tiket tidak tersedia.</p>
+            </div>
+        </div>
+    </div>
+    {{end}}
 </div>
 {{end}}
 

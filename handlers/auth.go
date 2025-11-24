@@ -22,9 +22,19 @@ func NewAuthHandler(cfg *config.Config) *AuthHandler {
 
 // ShowLogin menampilkan halaman login
 func (h *AuthHandler) ShowLogin(c *fiber.Ctx) error {
-	return c.Render("tickets/login", fiber.Map{
+	data := fiber.Map{
 		"title": "Login - Portal Ticketing",
-	})
+	}
+
+	if next := c.Query("next"); next != "" {
+		data["query_next"] = next
+	}
+
+	if c.Query("registered") == "true" {
+		data["success"] = "Akun berhasil dibuat. Silakan login untuk melanjutkan."
+	}
+
+	return c.Render("tickets/login", data)
 }
 
 // Login proses login user
@@ -32,6 +42,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	username := c.FormValue("username")
 	password := c.FormValue("password")
 	rememberMe := c.FormValue("remember_me")
+	nextParam := c.FormValue("next")
 
 	log.Printf("Login attempt for user: %s", username)
 
@@ -42,8 +53,10 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		First(&user).Error; err != nil {
 		log.Printf("User not found: %s", username)
 		return c.Render("tickets/login", fiber.Map{
-			"error": "Username atau password salah. Silakan coba lagi.",
-			"title": "Login - Portal Ticketing",
+			"error":            "Username atau password salah. Silakan coba lagi.",
+			"title":            "Login - Portal Ticketing",
+			"query_next":       nextParam,
+			"entered_username": username,
 		})
 	}
 
@@ -51,8 +64,10 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	if !utils.CheckPasswordHash(password, user.Password) {
 		log.Printf("Invalid password for user: %s", username)
 		return c.Render("tickets/login", fiber.Map{
-			"error": "Username atau password salah. Silakan coba lagi.",
-			"title": "Login - Portal Ticketing",
+			"error":            "Username atau password salah. Silakan coba lagi.",
+			"title":            "Login - Portal Ticketing",
+			"query_next":       nextParam,
+			"entered_username": username,
 		})
 	}
 
@@ -60,8 +75,10 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	if !user.HasPortalAccess() {
 		log.Printf("User %s doesn't have portal access", username)
 		return c.Render("tickets/login", fiber.Map{
-			"error": "Akun ini tidak memiliki akses ke dashboard pengguna.",
-			"title": "Login - Portal Ticketing",
+			"error":            "Akun ini tidak memiliki akses ke dashboard pengguna.",
+			"title":            "Login - Portal Ticketing",
+			"query_next":       nextParam,
+			"entered_username": username,
 		})
 	}
 
@@ -95,7 +112,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	log.Printf("Login successful for user: %s", username)
 
 	// Check for next parameter
-	next := c.FormValue("next")
+	next := nextParam
 	if next == "" {
 		next = c.Query("next")
 	}

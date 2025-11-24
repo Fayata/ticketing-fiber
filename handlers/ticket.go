@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"ticketing-fiber/config"
 	"ticketing-fiber/models"
@@ -41,11 +42,15 @@ func (h *TicketHandler) ShowCreateTicket(c *fiber.Ctx) error {
 	var departments []models.Department
 	config.DB.Find(&departments)
 
-	return c.Render("tickets/create_ticket", fiber.Map{
-		"title":       "Kirim Tiket Baru - Portal Ticketing",
-		"departments": departments,
-		"user":        user,
-	})
+	return c.Render("tickets/create_ticket", addBaseData(c, fiber.Map{
+		"title":         "Kirim Tiket Baru - Portal Ticketing",
+		"page_title":    "Kirim Tiket",
+		"page_subtitle": "Sampaikan kendala atau pertanyaan Anda kepada tim support kami",
+		"nav_active":    "create",
+		"template_name": "tickets/create_ticket",
+		"departments":   departments,
+		"user":          user,
+	}))
 }
 
 // CreateTicket proses pembuatan ticket baru
@@ -189,13 +194,17 @@ func (h *TicketHandler) ShowMyTickets(c *fiber.Ctx) error {
 	var tickets []models.Ticket
 	query.Order("created_at DESC").Find(&tickets)
 
-	return c.Render("tickets/my_tickets", fiber.Map{
+	return c.Render("tickets/my_tickets", addBaseData(c, fiber.Map{
 		"title":           "Tiket Saya - Portal Ticketing",
+		"page_title":      "Tiket Saya",
+		"page_subtitle":   "Kelola semua tiket support Anda",
+		"nav_active":      "tickets",
+		"template_name":   "tickets/my_tickets",
 		"tickets":         tickets,
 		"search_query":    searchQuery,
 		"status_filter":   statusFilter,
 		"priority_filter": priorityFilter,
-	})
+	}))
 }
 
 // ShowTicketDetail menampilkan detail tiket
@@ -217,11 +226,15 @@ func (h *TicketHandler) ShowTicketDetail(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Ticket not found")
 	}
 
-	return c.Render("tickets/ticket_detail", fiber.Map{
-		"title":   fmt.Sprintf("Tiket #%d - %s", ticket.ID, ticket.Title),
-		"ticket":  ticket,
-		"replies": ticket.Replies,
-	})
+	return c.Render("tickets/ticket_detail", addBaseData(c, fiber.Map{
+		"title":         fmt.Sprintf("Tiket #%d - %s", ticket.ID, ticket.Title),
+		"page_title":    fmt.Sprintf("Detail Tiket #%d", ticket.ID),
+		"page_subtitle": ticket.Title,
+		"nav_active":    "tickets",
+		"template_name": "tickets/ticket_detail",
+		"ticket":        ticket,
+		"replies":       ticket.Replies,
+	}))
 }
 
 // AddReply menambahkan reply ke tiket
@@ -259,7 +272,7 @@ func (h *TicketHandler) AddReply(c *fiber.Ctx) error {
 	}
 
 	// Update ticket updated_at
-	config.DB.Model(&ticket).Update("updated_at", "NOW()")
+	config.DB.Model(&ticket).Update("updated_at", time.Now())
 
 	log.Printf("Reply added to ticket #%d by user %s", ticketID, user.Username)
 
