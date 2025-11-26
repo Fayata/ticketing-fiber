@@ -1,3 +1,4 @@
+// handlers/ticket.go
 package handlers
 
 import (
@@ -29,7 +30,6 @@ func NewTicketHandler(cfg *config.Config, emailService *utils.EmailService) *Tic
 func (h *TicketHandler) ShowCreateTicket(c *fiber.Ctx) error {
 	user := c.Locals("user").(*models.User)
 
-	// Check if departments exist
 	var departmentCount int64
 	config.DB.Model(&models.Department{}).Count(&departmentCount)
 	if departmentCount == 0 {
@@ -38,7 +38,6 @@ func (h *TicketHandler) ShowCreateTicket(c *fiber.Ctx) error {
 		})
 	}
 
-	// Get all departments
 	var departments []models.Department
 	config.DB.Find(&departments)
 
@@ -63,12 +62,10 @@ func (h *TicketHandler) CreateTicket(c *fiber.Ctx) error {
 	priority := c.FormValue("priority")
 	departmentIDStr := c.FormValue("department")
 
-	// Validasi
 	if title == "" || description == "" || replyToEmail == "" {
 		return c.Status(fiber.StatusBadRequest).SendString("Semua field wajib diisi")
 	}
 
-	// Parse department ID
 	var departmentID *uint
 	if departmentIDStr != "" {
 		id, err := strconv.ParseUint(departmentIDStr, 10, 32)
@@ -78,7 +75,6 @@ func (h *TicketHandler) CreateTicket(c *fiber.Ctx) error {
 		}
 	}
 
-	// Create ticket
 	ticket := models.Ticket{
 		Title:        title,
 		Description:  description,
@@ -94,30 +90,30 @@ func (h *TicketHandler) CreateTicket(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to create ticket")
 	}
 
-	// Load relations untuk email
 	config.DB.Preload("Department").First(&ticket, ticket.ID)
 
-	// Send confirmation email
 	departmentName := "Tidak Ditentukan"
 	if ticket.Department != nil {
 		departmentName = ticket.Department.Name
 	}
 
-	err := h.emailService.SendTicketConfirmation(
-		replyToEmail,
-		user.GetFullName(),
-		ticket.Title,
-		ticket.ID,
-		departmentName,
-		ticket.GetPriorityDisplay(),
-		ticket.GetStatusDisplay(),
-		ticket.Description,
-	)
-
-	if err != nil {
-		log.Printf("Failed to send confirmation email: %v", err)
-		// Continue anyway, ticket sudah dibuat
-	}
+	// Send confirmation email (Async)
+	println("masuk ga")
+	go func() {
+		err := h.emailService.SendTicketConfirmation(
+			replyToEmail,
+			user.GetFullName(),
+			ticket.Title,
+			ticket.ID,
+			departmentName,
+			ticket.GetPriorityDisplay(),
+			ticket.GetStatusDisplay(),
+			ticket.Description,
+		)
+		if err != nil {
+			log.Printf("Failed to send confirmation email: %v", err)
+		}
+	}()
 
 	log.Printf("Ticket #%d created by user %s", ticket.ID, user.Username)
 
@@ -138,7 +134,7 @@ func (h *TicketHandler) ShowTicketSuccess(c *fiber.Ctx) error {
 
 	return c.Render("tickets/ticket_success", fiber.Map{
 		"title":  "Tiket Berhasil Dibuat",
-		"ticket": ticket,
+		"ticket": &ticket, 
 	})
 }
 
@@ -146,19 +142,15 @@ func (h *TicketHandler) ShowTicketSuccess(c *fiber.Ctx) error {
 func (h *TicketHandler) ShowMyTickets(c *fiber.Ctx) error {
 	user := c.Locals("user").(*models.User)
 
-	// Get filter parameters
 	searchQuery := c.Query("search", "")
 	statusFilter := c.Query("status", "all")
 	priorityFilter := c.Query("priority", "all")
 
-	// Build query
 	query := config.DB.Preload("Department").
 		Preload("Replies").
 		Where("created_by_id = ?", user.ID)
 
-	// Apply search filter
 	if searchQuery != "" {
-		// Try to parse as ticket ID
 		if ticketID, err := strconv.Atoi(searchQuery); err == nil {
 			query = query.Where("id = ? OR title LIKE ? OR description LIKE ?",
 				ticketID,
@@ -171,7 +163,6 @@ func (h *TicketHandler) ShowMyTickets(c *fiber.Ctx) error {
 		}
 	}
 
-	// Apply status filter
 	if statusFilter != "all" {
 		var status models.TicketStatus
 		switch statusFilter {
@@ -185,13 +176,11 @@ func (h *TicketHandler) ShowMyTickets(c *fiber.Ctx) error {
 		query = query.Where("status = ?", status)
 	}
 
-	// Apply priority filter
 	if priorityFilter != "all" {
 		query = query.Where("priority = ?", priorityFilter)
 	}
-
-	// Get tickets
-	var tickets []models.Ticket
+	// PERBAIKAN: Gunakan slice of pointers ([]*models.Ticket)
+	var tickets []*models.Ticket
 	query.Order("created_at DESC").Find(&tickets)
 
 	return c.Render("tickets/my_tickets", addBaseData(c, fiber.Map{
@@ -216,7 +205,6 @@ func (h *TicketHandler) ShowTicketDetail(c *fiber.Ctx) error {
 		return c.Redirect("/tiket")
 	}
 
-	// Get ticket with all relations
 	var ticket models.Ticket
 	if err := config.DB.Preload("CreatedBy").
 		Preload("Department").
@@ -232,12 +220,12 @@ func (h *TicketHandler) ShowTicketDetail(c *fiber.Ctx) error {
 		"page_subtitle": ticket.Title,
 		"nav_active":    "tickets",
 		"template_name": "tickets/ticket_detail",
-		"ticket":        ticket,
+		"ticket":        &ticket, // PERBAIKAN: Kirim sebagai pointer
 		"replies":       ticket.Replies,
 	}))
 }
 
-// AddReply menambahkan reply ke tiket
+// AddReply menambahkan reply ke tiket dan mengirim email
 func (h *TicketHandler) AddReply(c *fiber.Ctx) error {
 	user := c.Locals("user").(*models.User)
 
@@ -251,7 +239,6 @@ func (h *TicketHandler) AddReply(c *fiber.Ctx) error {
 		return c.Redirect(fmt.Sprintf("/tiket/%d", ticketID))
 	}
 
-	// Get ticket
 	var ticket models.Ticket
 	if err := config.DB.Preload("CreatedBy").
 		Where("id = ? AND created_by_id = ?", ticketID, user.ID).
@@ -259,7 +246,6 @@ func (h *TicketHandler) AddReply(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("Ticket not found")
 	}
 
-	// Create reply
 	reply := models.TicketReply{
 		TicketID: ticket.ID,
 		UserID:   user.ID,
@@ -271,10 +257,30 @@ func (h *TicketHandler) AddReply(c *fiber.Ctx) error {
 		return c.Redirect(fmt.Sprintf("/tiket/%d", ticketID))
 	}
 
-	// Update ticket updated_at
 	config.DB.Model(&ticket).Update("updated_at", time.Now())
 
 	log.Printf("Reply added to ticket #%d by user %s", ticketID, user.Username)
+	if reply.UserID != ticket.CreatedByID {
+		targetEmail := ticket.ReplyToEmail
+		if targetEmail == "" {
+			targetEmail = ticket.CreatedBy.Email
+		}
+
+		go func() {
+			err := h.emailService.SendTicketReply(
+				targetEmail,
+				ticket.CreatedBy.GetFullName(),
+				ticket.Title,
+				ticket.ID,
+				ticket.GetStatusDisplay(),
+				reply.Message,
+				user.GetFullName(),
+			)
+			if err != nil {
+				log.Printf("Failed to send reply email notification: %v", err)
+			}
+		}()
+	}
 
 	return c.Redirect(fmt.Sprintf("/tiket/%d", ticketID))
 }

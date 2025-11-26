@@ -32,7 +32,7 @@ func LoadConfig() *Config {
 	return &Config{
 		Port:          getEnv("PORT", "3000"),
 		DatabasePath:  getEnv("DB_PATH", "./ticketing.db"),
-		EmailHost:     getEnv("EMAIL_HOST", "cloudtech.id"),
+		EmailHost:     getEnv("EMAIL_HOST", "mail.cloudtech.id"),
 		EmailPort:     587,
 		EmailUsername: getEnv("EMAIL_USER", "daffa@cloudtech.id"),
 		EmailPassword: getEnv("EMAIL_PASSWORD", ""),

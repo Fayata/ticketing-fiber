@@ -18,11 +18,8 @@ var (
 func InitDatabase(cfg *Config) error {
 	var err error
 
-	// Set log level
-	logLevel := logger.Silent
-	if cfg.Debug {
-		logLevel = logger.Info
-	}
+	logLevel := logger.Error
+	// logLevel := logger.Silent
 
 	// Connect to SQLite
 	DB, err = gorm.Open(sqlite.Open(cfg.DatabasePath), &gorm.Config{
@@ -41,6 +38,6 @@ func AutoMigrate(models ...interface{}) error {
 	if err := DB.AutoMigrate(models...); err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
-	log.Println("✅ Database migration completed")
+	// log.Println("✅ Database migration completed")
 	return nil
 }
